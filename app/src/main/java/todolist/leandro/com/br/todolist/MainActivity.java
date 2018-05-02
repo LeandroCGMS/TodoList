@@ -7,6 +7,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -24,6 +25,7 @@ public class MainActivity extends Activity {
 
     private ArrayAdapter<String> itensAdaptador;
     private ArrayList<String> itens;
+    private ArrayList<Integer> ids;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +35,9 @@ public class MainActivity extends Activity {
             // Recuperar componentes
             textoTarefa = findViewById(R.id.textoId);
             botaoAdicionar = findViewById(R.id.botaoAdicionarId);
+
+            // lista
+            listaTarefas = findViewById(R.id.listViewId);
 
             // Banco dados
             bancoDados = openOrCreateDatabase("apptarefas", MODE_PRIVATE, null);
@@ -47,6 +52,13 @@ public class MainActivity extends Activity {
                     String textoDigitado = textoTarefa.getText().toString();
                     salvarTarefa(textoDigitado);
 
+                }
+            });
+
+            listaTarefas.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                @Override
+                public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                    removerTarefa( ids.get( position ));
                 }
             });
 
@@ -88,14 +100,13 @@ public class MainActivity extends Activity {
             Cursor cursor = bancoDados.rawQuery("SELECT * FROM tarefas ORDER BY id DESC", null);
 
             // recuperar os ids das colunas
-            int indiceColuna = cursor.getColumnIndex("id");
+            int indiceColunaId = cursor.getColumnIndex("id");
             int indiceColunaTarefa = cursor.getColumnIndex("tarefa");
 
-            // lista
-            listaTarefas = findViewById(R.id.listViewId);
 
             // Criar adaptador
             itens = new ArrayList<String>();
+            ids = new ArrayList<Integer>();
             itensAdaptador = new ArrayAdapter<String>(getApplicationContext(),
                     android.R.layout.simple_list_item_2, android.R.id.text2, itens);
             listaTarefas.setAdapter(itensAdaptador);
@@ -105,8 +116,22 @@ public class MainActivity extends Activity {
             while (cursor != null) {
                 Log.i("Resultado - ", "Tarefa: " + cursor.getString(indiceColunaTarefa));
                 itens.add( cursor.getString(indiceColunaTarefa) );
+                ids.add( Integer.parseInt( cursor.getString(indiceColunaId) )  );
                 cursor.moveToNext();
             }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void removerTarefa(Integer id) {
+        try{
+
+            bancoDados.execSQL("DELETE FROM tarefas WHERE id = " + id);
+            recuperarTarefas();
+            Toast.makeText(MainActivity.this, "Tarefa removida com sucesso.",
+                    Toast.LENGTH_SHORT).show();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
